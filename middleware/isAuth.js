@@ -8,9 +8,11 @@ module.exports = (req, res, next) => {
 		throw error;
 	}
 	const token = authHeader.split(' ')[1]; // pega o token;
+
 	let decodedToken;
 	try {
 		decodedToken = jwt.verify(token, 'SecretToMyString'); // testa para ver se o token é decodificado pelo secret
+
 	} catch (err) {
 		err.statusCode = 500;
 		throw err;
@@ -21,5 +23,6 @@ module.exports = (req, res, next) => {
 		throw error;
 	}
 	req.userId = decodedToken.userId; // nisso o userId é passado pelos requests
+	console.log(req.userId);
 	next();
 }
