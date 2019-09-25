@@ -1,4 +1,6 @@
 const {validationResult} = require('express-validator');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
 
@@ -13,4 +15,57 @@ exports.signup = (req, res, next) => {
 	const email = req.body.email;
 	const name = req.body.name;
 	const password = req.body.password;
+	bcrypt.hash(password, 12)
+	.then(hashedPw => {
+		const user = new User({
+			email,
+			password: hashedPw,
+			name
+		});
+		return user.save();
+	})
+	.then(result => {
+		res.status(201).json({message:'User Created!', userId: result._id });
+	})
+	.catch(err => {
+		if(!err.statusCode) {
+		 err.statusCode = 500; 
+		}
+		next(err);	
+	})
+};
+
+exports.login = (req, res, next) => {
+	const email = req.body.email;
+	const password = req.body.password;
+	let loadedUser;
+	User.findOne({ email })
+	.then(user => {
+		if(!user) {
+			const error = new Error('A user with this email could not be found.');
+			error.statusCode = 401;
+			throw error;
+		}
+		loadedUser = user;
+		return bcrypt.compare(password, user.password);
+	})
+	.then(isEqual => {
+		if(!isEqual) {
+			const error = new Error('Wrong password!');
+			error.statusCode = 401;
+			throw error;
+		}
+		// Crio um token com o email e o userId (são necessarios para verificação posteriormente e não colocar dados sensiveis!)
+		const token = jwt.sign({
+			email: loadedUser.email,
+			userId: loadedUser._id.toString()
+		}, 'SecretToMyString', { expiresIn: '1h' }); // uma string secret que é usada para decodificar, e o tempo de expiração do token
+		res.status(200). json({token, userId: loadedUser._id.toString()})
+	})
+	.catch(err => {
+		if(!err.statusCode) {
+			err.statusCode = 500; 
+		}
+		next(err);		
+	});
 };
