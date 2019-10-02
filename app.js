@@ -62,6 +62,10 @@ mongoose.connect(
 	'mongodb+srv://bansaidol:12345@cluster0-9ozdd.mongodb.net/messages'
 	)
 .then(() => {
-	app.listen(8080);	
+	const server = app.listen(8080);
+	const io = require('./socket').init(server);
+	io.on('connection', socket => {
+		console.log('Client connected!');
+	});
 })
 .catch(console.log)
